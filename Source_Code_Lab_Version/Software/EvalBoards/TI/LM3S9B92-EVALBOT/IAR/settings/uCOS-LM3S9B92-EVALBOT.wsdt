@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+
+<Workspace>
+  <ConfigDictionary>
+    
+    
+    
+  <CurrentConfigs><Project>uCOS-III-CE4053_PG/Flash</Project></CurrentConfigs></ConfigDictionary>
+  <Desktop>
+    <Static>
+      <Workspace>
+        <ColumnWidths>
+          
+          
+          
+          
+        <Column0>271</Column0><Column1>12</Column1><Column2>27</Column2><Column3>0</Column3></ColumnWidths>
+      </Workspace>
+      <Build>
+        
+        
+        
+        
+      <ColumnWidth0>20</ColumnWidth0><ColumnWidth1>1395</ColumnWidth1><ColumnWidth2>372</ColumnWidth2><ColumnWidth3>93</ColumnWidth3></Build>
+    <Find-All-References><ColumnWidth0>179</ColumnWidth0><ColumnWidth1>25</ColumnWidth1><ColumnWidth2>307</ColumnWidth2></Find-All-References><Find-in-Files><ColumnWidth0>179</ColumnWidth0><ColumnWidth1>25</ColumnWidth1><ColumnWidth2>307</ColumnWidth2></Find-in-Files><Select-Ambiguous-Definitions><ColumnWidth0>179</ColumnWidth0><ColumnWidth1>25</ColumnWidth1><ColumnWidth2>307</ColumnWidth2></Select-Ambiguous-Definitions><TerminalIO/><Debug-Log><ColumnWidth0>17</ColumnWidth0><ColumnWidth1>479</ColumnWidth1></Debug-Log></Static>
+    <Windows>
+      
+      
+    <Wnd0>
+        <Tabs>
+          <Tab>
+            <Identity>TabID-3113-14119</Identity>
+            <TabName>Workspace</TabName>
+            <Factory>Workspace</Factory>
+            <Session>
+              
+            <NodeDict><ExpandedNode>uCOS-III-CE4053_PG</ExpandedNode></NodeDict></Session>
+          </Tab>
+        </Tabs>
+        
+      <SelectedTab>0</SelectedTab></Wnd0><Wnd1>
+        <Tabs>
+          <Tab>
+            <Identity>TabID-16601-14890</Identity>
+            <TabName>Build</TabName>
+            <Factory>Build</Factory>
+            <Session/>
+          </Tab>
+        <Tab><Identity>TabID-31474-15221</Identity><TabName>Find All References</TabName><Factory>Find-All-References</Factory><Session/></Tab><Tab><Identity>TabID-32289-15411</Identity><TabName>Find in Files</TabName><Factory>Find-in-Files</Factory><Session/></Tab><Tab><Identity>TabID-30909-16665</Identity><TabName>Ambiguous Definitions</TabName><Factory>Select-Ambiguous-Definitions</Factory><Session/></Tab><Tab><Identity>TabID-24783-19441</Identity><TabName>Debug Log</TabName><Factory>Debug-Log</Factory><Session/></Tab></Tabs>
+        
+      <SelectedTab>0</SelectedTab></Wnd1></Windows>
+    <Editor>
+      
+      
+      
+      
+    <Pane/><ActivePane>0</ActivePane><Sizes><Pane><X>1000000</X><Y>1000000</Y></Pane></Sizes><SplitMode>1</SplitMode></Editor>
+    <Positions>
+      
+      
+      
+      
+      
+    <Top><Row0><Sizes><Toolbar-011a4c38><key>iaridepm.enu1</key></Toolbar-011a4c38></Sizes></Row0></Top><Left><Row0><Sizes><Wnd0><Rect><Top>-2</Top><Left>-2</Left><Bottom>681</Bottom><Right>330</Right><x>-2</x><y>-2</y><xscreen>107</xscreen><yscreen>129</yscreen><sizeHorzCX>104492</sizeHorzCX><sizeHorzCY>177686</sizeHorzCY><sizeVertCX>324219</sizeVertCX><sizeVertCY>940771</sizeVertCY></Rect></Wnd0></Sizes></Row0></Left><Right><Row0><Sizes><Wnd1><Rect><Top>-2</Top><Left>-2</Left><Bottom>681</Bottom><Right>279</Right><x>-2</x><y>-2</y><xscreen>1026</xscreen><yscreen>129</yscreen><sizeHorzCX>1001953</sizeHorzCX><sizeHorzCY>177686</sizeHorzCY><sizeVertCX>274414</sizeVertCX><sizeVertCY>940771</sizeVertCY></Rect></Wnd1></Sizes></Row0></Right><Bottom><Row0><Sizes/></Row0></Bottom><Float><Sizes/></Float></Positions>
+  </Desktop>
+</Workspace>
+
+
