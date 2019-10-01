@@ -92,6 +92,7 @@
 *.ninja
 *.ninja_log
 *.ninja_deps
+*.wsdt
 
 
 # Kernel Module Compile Results
@@ -109,3 +110,16 @@ Module.symvers
 Mkfile.old
 
 dkms.conf
+*.dbgdt
+
+*.dnx
+
+*.pbd
+
+*.pbw
+
+*.ewp
+
+*.ewt
+
+*.browse
