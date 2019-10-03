@@ -75,6 +75,8 @@ void  OS_TickTask (void *p_arg)
                 OS_TickListUpdate();                        /* Update all tasks waiting for time                      */
             }
         }
+        // TODO: dispatch all ready recursive tasks in AVL.
+        // TODO: set the task deadlines!
     }
 }
 

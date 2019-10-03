@@ -46,6 +46,10 @@
 #define OS_CFG_PEND_MULTI_EN            0u   /* Enable (1) or Disable (0) code generation for multi-pend feature      */
 
 #define OS_CFG_PRIO_MAX                 20u   /* Defines the maximum number of task priorities (see OS_PRIO data type) */
+#define OS_CFG_PRIO_FLOOR               3u   // OS_CFG_REC_TASK_PRIO
+#define OS_CFG_PRIO_CEILING             18u  // OS_CFG_STAT_TASK_PRIO (ceil is non inclusive in the range)
+#define OS_REC_MAX_TASKS                18-3-1   
+                                              /* TODO: Priority ranges between OS_CFG_REC_TASK_PRIO to OS_CFG_STAT_TASK_PRIO are RESERVED for recursive tasks */
 
 #define OS_CFG_SCHED_LOCK_TIME_MEAS_EN  1u   /* Include code to measure scheduler lock time                           */
 #define OS_CFG_SCHED_ROUND_ROBIN_EN     0u   /* Include code for Round-Robin scheduling                               */ //Disabled-6

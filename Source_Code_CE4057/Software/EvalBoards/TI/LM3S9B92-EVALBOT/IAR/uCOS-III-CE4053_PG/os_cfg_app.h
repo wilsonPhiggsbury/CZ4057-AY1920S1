@@ -55,22 +55,29 @@
 
 
                                                             /* ------------------- STATISTIC TASK ------------------- */
-#define  OS_CFG_STAT_TASK_PRIO    OS_CFG_PRIO_MAX-3u        /* Priority                                               */
+#define  OS_CFG_STAT_TASK_PRIO    OS_CFG_PRIO_MAX-2u        /* Statistic task prio MUST BE BELOW Task Recursion prio  */
 #define  OS_CFG_STAT_TASK_RATE_HZ         10u               /* Rate of execution (1 to 10 Hz)                         */
 #define  OS_CFG_STAT_TASK_STK_SIZE       128u               /* Stack size (number of CPU_STK elements)                */
 
 
                                                             /* ------------------------ TICKS ----------------------- */
 #define  OS_CFG_TICK_RATE_HZ            1000u               /* Tick rate in Hertz (10 to 1000 Hz)                     */
-#define  OS_CFG_TICK_TASK_PRIO              3u        /* Priority                                               */
+#define  OS_CFG_TICK_TASK_PRIO              1u        /* Priority                                               */
 #define  OS_CFG_TICK_TASK_STK_SIZE       128u               /* Stack size (number of CPU_STK elements)                */
 #define  OS_CFG_TICK_WHEEL_SIZE           13u               /* Number of 'spokes' in tick  wheel; SHOULD be prime     */
 
 
                                                             /* ----------------------- TIMERS ----------------------- */
-#define  OS_CFG_TMR_TASK_PRIO               4u        /* Priority of 'Timer Task'                               */
+#define  OS_CFG_TMR_TASK_PRIO               2u        /* Priority of 'Timer Task'                               */
 #define  OS_CFG_TMR_TASK_RATE_HZ          10u               /* Rate for timers (10 Hz Typ.)                           */
 #define  OS_CFG_TMR_TASK_STK_SIZE        128u               /* Stack size (number of CPU_STK elements)                */
 #define  OS_CFG_TMR_WHEEL_SIZE            13u               /* Number of 'spokes' in timer wheel; SHOULD be prime     */
+
+                                                            /* -------------------TASK  RECURSION ------------------- */
+#define  OS_CFG_REC_TASK_PRIO               3u              /* Task Recursion prio MUST BE ABOVE Statistic Task prio  */
+#define  OS_CFG_REC_TASK_STK_SIZE          128u
+//#define OS_REC_MAX_TASKS                OS_CFG_STAT_TASK_PRIO-OS_CFG_REC_TASK_PRIO-1   
+                                              /* TODO: Priority ranges between OS_CFG_REC_TASK_PRIO to OS_CFG_STAT_TASK_PRIO are RESERVED for recursive tasks */
+/* must have contiguous priority gap between TASK RECURSION and STATISTIC TASK */
 
 #endif
