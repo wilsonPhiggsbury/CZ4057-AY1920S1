@@ -638,6 +638,7 @@ typedef  struct  os_tcb              OS_TCB;
 
 typedef  struct  os_rdy_list         OS_RDY_LIST;
 typedef  struct  os_rec_task_node     OS_REC_TASK_NODE; 
+typedef  struct  os_rec_task_avltree_node     OS_REC_TASK_AVLTREE_NODE;
 
 typedef  struct  os_tick_spoke       OS_TICK_SPOKE;
 
@@ -694,11 +695,10 @@ struct  os_rdy_list {
     OS_TCB              *TailPtr;                           /* Pointer to last task          at selected priority     */
     OS_OBJ_QTY           NbrEntries;                        /* Number of entries             at selected priority     */
 };
+// OS_REC__
 struct  os_rec_task_node 
 { 
-	struct os_rec_task_node *left; 
-	struct os_rec_task_node *right; 
-	CPU_INT16U height; 
+	struct os_rec_task_node *next; 
         // custom scheduler variables to track deadlines
         OS_TCB *tcb;
         OS_TASK_PTR taskPtr;
@@ -707,6 +707,15 @@ struct  os_rec_task_node
         OS_TICK releasePeriod; // in AVL tree for task recursion, releasePeriod should be the key to sort on
         OS_TICK deadline;
         OS_PRIO taskPrio;
+};
+struct  os_rec_task_avltree_node
+{
+	struct os_rec_task_avltree_node *left; 
+	struct os_rec_task_avltree_node *right; 
+	CPU_INT16U height; 
+	CPU_INT16U numTaskNodes; 
+	struct os_rec_task_node *taskNode; 
+  
 };
 
 /*
@@ -1130,8 +1139,12 @@ OS_EXT            OS_OBJ_QTY             OSQQty;                      /* Number 
 
                                                                       /* READY LIST --------------------------------- */
 OS_EXT            OS_RDY_LIST            OSRdyList[OS_CFG_PRIO_MAX];  /* Table of tasks ready to run                  */
-OS_EXT            OS_REC_TASK_NODE       *OSRecRdyList[OS_REC_MAX_TASKS];       /* Binary heap that points to nodes of recursive tasks ready to run */
-OS_EXT            OS_REC_TASK_NODE       OSRecTaskList;                         /* AVL tree first node for full list of recursive tasks */
+OS_EXT            OS_REC_TASK_NODE       *OSRecRdyList[OS_REC_MAX_TASKS];       /* Binary heap that points to nodes of recursive tasks ready to run OS_REC__*/
+OS_EXT            OS_REC_TASK_AVLTREE_NODE       OSRecTaskAvltreeList[OS_REC_MAX_TASKS];                         /* AVL tree nodes (points to task nodes) for full list of recursive tasks */
+OS_EXT            OS_REC_TASK_NODE       OSRecTaskList[OS_REC_MAX_TASKS];                                        /* Task nodes for full list of recursive tasks */
+OS_EXT            OS_PRIO       OSRecTaskAvltreeListNumElements;                                        /* Keep track of max bound for avl tree list */
+OS_EXT            OS_PRIO       OSRecTaskListNumElements;                                        /* Keep track of max bound for avl tree list */
+
 
 
 #ifdef OS_SAFETY_CRITICAL_IEC61508
@@ -1196,8 +1209,8 @@ OS_EXT            OS_CTR                 OSTmrUpdateCtr;
 #endif
                                                                       /* RECURSIVE SCHEDULER ------------------------ */
 OS_EXT            OS_TCB                 OSRecTaskTCB;                
-OS_EXT            CPU_INT16U             OSRecRdyListCount;           /* Number of recursive tasks ready to run       */
-OS_EXT            CPU_INT16U             OSRecTaskCount;              /* Number of recursive tasks that exist         */
+OS_EXT            OS_PRIO                OSRecRdyListCount;           /* Number of recursive tasks ready to run       */
+OS_EXT            OS_PRIO                OSRecTaskCount;              /* Number of recursive tasks that exist         */
 
                                                                       /* TCBs --------------------------------------- */
 OS_EXT            OS_TCB                *OSTCBCurPtr;                 /* Pointer to currently running TCB             */
@@ -1689,7 +1702,8 @@ void          OSTaskTimeQuantaSet       (OS_TCB                *p_tcb,
                                          OS_ERR                *p_err);
 #endif
 
-void          OSRecTaskCreate           (OS_TASK_PTR            taskPtr,
+void          OSRecTaskCreate           (OS_TCB                *p_tcb,
+                                         OS_TASK_PTR            taskPtr,
                                          OS_TICK                releasePeriod,
                                          OS_TICK                deadline,
                                          OS_ERR                 *err);
@@ -2084,6 +2098,9 @@ void          OS_TickListResetPeak      (void);
 
 void          OS_TickListUpdate         (void);
 
+/* ------------------------------------------- RECURSION LIST MANAGEMENT -------------------------------------------OS_REC__ */
+void OSRecReleaseListInsert(OS_REC_TASK_NODE *node, OS_ERR *err);
+void OSRecReleaseListRemove(OS_REC_TASK_NODE *node, OS_ERR *err);
 /*$PAGE*/
 /*
 ************************************************************************************************************************

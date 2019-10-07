@@ -65,6 +65,13 @@ void  OS_TickTask (void *p_arg)
 
     p_arg = p_arg;                                          /* Prevent compiler warning                               */
 
+    /* DATA STRUCT to dispatch recursive tasks */
+    OS_REC_TASK_NODE* releaseWatchlist = (OS_REC_TASK_NODE*)0;
+    // release every single recursive task at time t=0!
+    for(OS_PRIO i=0; i<OSRecTaskListNumElements; i++)
+    {
+      OSTaskQPost(&OSRecTaskTCB, (void*)&OSRecTaskList[i], (OS_MSG_SIZE)sizeof(OS_REC_TASK_NODE), OS_OPT_POST_FIFO, &err);
+    }
     while (DEF_ON) {
         (void)OSTaskSemPend((OS_TICK  )0,
                             (OS_OPT   )OS_OPT_PEND_BLOCKING,
@@ -74,9 +81,44 @@ void  OS_TickTask (void *p_arg)
             if (OSRunning == OS_STATE_OS_RUNNING) {
                 OS_TickListUpdate();                        /* Update all tasks waiting for time                      */
             }
+            /* CODE to dispatch recursive tasks */
+            if(releaseWatchlist == (OS_REC_TASK_NODE*)0)
+            {
+              // store a copy of the avl linked list, these are the tasks to dispatch now
+              // traverse down avl tree leftward to find smallest next release time node
+              OS_REC_TASK_AVLTREE_NODE* avlRootNode = &OSRecTaskAvltreeList[0];
+              OS_REC_TASK_AVLTREE_NODE* tmpAvlNode = avlRootNode;
+              while(tmpAvlNode->left != (OS_REC_TASK_AVLTREE_NODE*)0)
+                tmpAvlNode = tmpAvlNode->left;
+              releaseWatchlist = tmpAvlNode->taskNode;
+            }
+            OS_TICK thisTick = OSTimeGet(&err);//OS_TS_GET(); 
+            if(thisTick >= releaseWatchlist->nextRelease)
+            {
+              // TODO: verify, all nextRelease should be the same
+              // release the tasks
+              OS_REC_TASK_NODE* tmpNode = releaseWatchlist;
+              while(tmpNode != (OS_REC_TASK_NODE*)0)
+              {
+                OSTaskQPost(&OSRecTaskTCB, (void*)tmpNode, (OS_MSG_SIZE)sizeof(OS_REC_TASK_NODE), OS_OPT_POST_FIFO, &err);
+                tmpNode = tmpNode->next;
+              }
+              // remove the avl node
+              OSRecReleaseListRemove(&releaseWatchlist[0], &err);
+              // decide the next release period, then insert these nodes back into (most probably different) avl nodes
+              tmpNode = releaseWatchlist;
+              while(tmpNode != (OS_REC_TASK_NODE*)0)
+              {
+                tmpNode->nextRelease += tmpNode->releasePeriod;
+                // save the next ptr since insertion will make it forget
+                OS_REC_TASK_NODE* tmp = tmpNode->next;
+                OSRecReleaseListInsert(tmpNode, &err);
+                tmpNode = tmp;
+              }
+              
+            }
+            //OSTaskQPost(&OSRecTaskTCB, (void*)releaseWatchlist, (OS_MSG_SIZE)sizeof(OS_REC_TASK_NODE), OS_OPT_POST_FIFO, &err);
         }
-        // TODO: dispatch all ready recursive tasks in AVL.
-        // TODO: set the task deadlines!
     }
 }
 

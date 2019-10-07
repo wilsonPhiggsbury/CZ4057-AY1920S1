@@ -519,9 +519,9 @@ void  OSTaskDel (OS_TCB  *p_tcb,
 
     OSTaskDelHook(p_tcb);                                   /* Call user defined hook                                 */
 
-    if((p_tcb->opt & OS_OPT_TASK_RECURSIVE) != (OS_OPT)0)
+    if((p_tcb->Opt & OS_OPT_TASK_RECURSIVE) != (OS_OPT)0)
     {
-      OSTaskQPost(OS_REC_TASK_TCB, (void*)&p_tcb->RecursiveTaskNode, (OS_MSG_SIZE)sizeof(OS_REC_TASK_NODE), OS_OPT_POST_FIFO, (OS_ERR*)0);
+      OSTaskQPost(&OSRecTaskTCB, (void*)&p_tcb->RecursiveTaskNode, (OS_MSG_SIZE)sizeof(OS_REC_TASK_NODE), OS_OPT_POST_FIFO, (OS_ERR*)0);
     }
 #if OS_CFG_DBG_EN > 0u
     OS_TaskDbgListRemove(p_tcb);
