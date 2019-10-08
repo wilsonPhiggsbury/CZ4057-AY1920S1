@@ -116,6 +116,10 @@ int  main (void)
     BSP_IntDisAll();                                            /* Disable all interrupts.                              */
     OSInit(&err);                                               /* Init uC/OS-III.                                      */
 
+    OSRecTaskRunning = DEF_TRUE;
+
+    OSRecTaskCreate(&AppTaskOneTCB, AppTaskOne, 5000, 5000, &err);
+    OSRecTaskCreate(&AppTaskTwoTCB, AppTaskTwo, 6000, 3000, &err);
     OSTaskCreate((OS_TCB     *)&AppTaskStartTCB,           /* Create the start task                                */
                  (CPU_CHAR   *)"App Task Start",
                  (OS_TASK_PTR ) AppTaskStart,
@@ -129,8 +133,7 @@ int  main (void)
                  (void       *) (CPU_INT32U) 0, 
                  (OS_OPT      )(OS_OPT_TASK_STK_CHK | OS_OPT_TASK_STK_CLR),
                  (OS_ERR     *)&err);
-    OSRecTaskCreate(&AppTaskOneTCB, AppTaskOne, 2000, 2000, &err);
-    //OSRecTaskCreate(AppTaskTwo, 5000, 5000, &err);
+    
     
 
     OSStart(&err);                                              /* Start multitasking (i.e. give control to uC/OS-III). */
@@ -170,7 +173,6 @@ static  void  AppTaskStart (void  *p_arg)
     AppRobotMotorDriveSensorEnable();
     
     /* Initialise the 2 Main Tasks to  Deleted State */
-
     //OSTaskCreate((OS_TCB     *)&AppTaskOneTCB, (CPU_CHAR   *)"App Task One", (OS_TASK_PTR ) AppTaskOne, (void       *) 0, (OS_PRIO     ) APP_TASK_ONE_PRIO, (CPU_STK    *)&AppTaskOneStk[0], (CPU_STK_SIZE) APP_TASK_ONE_STK_SIZE / 10u, (CPU_STK_SIZE) APP_TASK_ONE_STK_SIZE, (OS_MSG_QTY  ) 0u, (OS_TICK     ) 0u, (void       *)(CPU_INT32U) 1, (OS_OPT      )(OS_OPT_TASK_STK_CHK | OS_OPT_TASK_STK_CLR), (OS_ERR     *)&err);
     //OSTaskCreate((OS_TCB     *)&AppTaskTwoTCB, (CPU_CHAR   *)"App Task Two", (OS_TASK_PTR ) AppTaskTwo, (void       *) 0, (OS_PRIO     ) APP_TASK_TWO_PRIO, (CPU_STK    *)&AppTaskTwoStk[0], (CPU_STK_SIZE) APP_TASK_TWO_STK_SIZE / 10u, (CPU_STK_SIZE) APP_TASK_TWO_STK_SIZE, (OS_MSG_QTY  ) 0u, (OS_TICK     ) 0u, (void       *) (CPU_INT32U) 2, (OS_OPT      )(OS_OPT_TASK_STK_CHK | OS_OPT_TASK_STK_CLR), (OS_ERR     *)&err);
 
@@ -188,11 +190,11 @@ static  void  AppTaskOne (void  *p_arg)
     {
       if(iMove%2==0)
       {  
-      RoboTurn(FRONT, 16, 50);
+      RoboTurn(FRONT, 2, 50);
       iMove--;
       }
       else{
-        RoboTurn(BACK, 16, 50);
+        RoboTurn(BACK, 2, 50);
         iMove++;
       }
     }
@@ -220,7 +222,7 @@ static  void  AppTaskTwo (void  *p_arg)
 //    }
 //    
     BSP_LED_Off(0u);
-    for(k=0; k<3; k++)
+    for(k=0; k<1; k++)
     {
       BSP_LED_Toggle(0u);
       for(i=0; i <ONESECONDTICK/2; i++)

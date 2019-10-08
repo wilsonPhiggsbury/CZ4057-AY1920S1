@@ -702,6 +702,7 @@ struct  os_rec_task_node
         // custom scheduler variables to track deadlines
         OS_TCB *tcb;
         OS_TASK_PTR taskPtr;
+        CPU_STK* stkBasePtr;
         OS_TICK nextRelease;
         OS_TICK nextDeadline; // in binary heap for task scheduler, nextDeadline should be the key to sort on
         OS_TICK releasePeriod; // in AVL tree for task recursion, releasePeriod should be the key to sort on
@@ -1144,6 +1145,8 @@ OS_EXT            OS_REC_TASK_AVLTREE_NODE       OSRecTaskAvltreeList[OS_REC_MAX
 OS_EXT            OS_REC_TASK_NODE       OSRecTaskList[OS_REC_MAX_TASKS];                                        /* Task nodes for full list of recursive tasks */
 OS_EXT            OS_PRIO       OSRecTaskAvltreeListNumElements;                                        /* Keep track of max bound for avl tree list */
 OS_EXT            OS_PRIO       OSRecTaskListNumElements;                                        /* Keep track of max bound for avl tree list */
+OS_EXT            CPU_BOOLEAN       OSRecTaskRunning;                                        /* Keep track of max bound for avl tree list */
+
 
 
 
@@ -1268,6 +1271,10 @@ extern  OS_PRIO       const OSCfg_RecTaskPrio;
 extern  CPU_STK     * const OSCfg_RecTaskStkBasePtr;
 extern  CPU_STK_SIZE  const OSCfg_RecTaskStkLimit;
 extern  CPU_STK_SIZE  const OSCfg_RecTaskStkSize;
+
+extern  CPU_STK     * const OSCfg_RecTaskInstanceStkBasePtr;
+extern  CPU_STK_SIZE  const OSCfg_RecTaskInstanceStkLimit;
+extern  CPU_STK_SIZE  const OSCfg_RecTaskInstanceStkSize;
 
 extern  OS_PRIO       const OSCfg_TmrTaskPrio;
 extern  OS_RATE_HZ    const OSCfg_TmrTaskRate_Hz;
