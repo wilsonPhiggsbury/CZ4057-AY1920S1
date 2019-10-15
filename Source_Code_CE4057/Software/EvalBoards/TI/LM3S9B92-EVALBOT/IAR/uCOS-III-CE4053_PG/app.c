@@ -42,7 +42,7 @@
 *********************************************************************************************************
 */
 
-#define ONESECONDTICK             7000000
+#define ONESECONDTICK             3500000
 
 #define TASK1PERIOD                   10
 #define TASK2PERIOD                   20
@@ -66,11 +66,11 @@
 static  OS_TCB       AppTaskStartTCB;
 static  CPU_STK      AppTaskStartStk[APP_TASK_START_STK_SIZE];
 
-static  OS_TCB       AppTaskOneTCB;
-static  CPU_STK      AppTaskOneStk[APP_TASK_ONE_STK_SIZE];
+static  OS_TCB       moveForwardTCB, moveBackwardTCB, leftTurnTCB, rightTurnTCB;
+//static  CPU_STK      moveForwardStk[APP_TASK_ONE_STK_SIZE];
 
-static  OS_TCB       AppTaskTwoTCB;
-static  CPU_STK      AppTaskTwoStk[APP_TASK_TWO_STK_SIZE];
+static  OS_TCB       LEDBlinkTCB;
+//static  CPU_STK      LEDBlinkStk[APP_TASK_TWO_STK_SIZE];
 
 CPU_INT32U      iCnt = 0;
 CPU_INT08U      Left_tgt;
@@ -90,10 +90,14 @@ CPU_INT32U      measure=0;
 static  void        AppRobotMotorDriveSensorEnable    ();
         void        IntWheelSensor                    ();
         void        RoboTurn                          (tSide dir, CPU_INT16U seg, CPU_INT16U speed);
+        void        delay                             (CPU_INT32U amt);
 
-static  void        AppTaskStart                 (void  *p_arg);
-static  void        AppTaskOne                   (void  *p_arg);
-static  void        AppTaskTwo                   (void  *p_arg);
+static  void        AppTaskStart                  (void  *p_arg);
+static  void        moveForward                   (void  *p_arg);
+static  void        moveBackward                  (void  *p_arg);
+static  void        leftTurn                      (void  *p_arg);
+static  void        rightTurn                     (void  *p_arg);
+static  void        LEDBlink                      (void  *p_arg);
 
 
 /*
@@ -118,8 +122,11 @@ int  main (void)
 
     OSRecTaskRunning = DEF_TRUE;
 
-    OSRecTaskCreate(&AppTaskOneTCB, AppTaskOne, 5000, 5000, &err);
-    OSRecTaskCreate(&AppTaskTwoTCB, AppTaskTwo, 6000, 3000, &err);
+    OSRecTaskCreate(&LEDBlinkTCB, LEDBlink, "Blink", 5000, 5000, &err);
+    OSRecTaskCreate(&moveForwardTCB, moveForward, "Forwd", 10000, 10000, &err);
+    OSRecTaskCreate(&moveBackwardTCB, moveBackward, "Bckwd", 17000, 17000, &err);
+    OSRecTaskCreate(&leftTurnTCB, leftTurn, "LTurn", 25000, 25000, &err);
+    OSRecTaskCreate(&rightTurnTCB, rightTurn, "RTurn", 47000, 47000, &err);
     OSTaskCreate((OS_TCB     *)&AppTaskStartTCB,           /* Create the start task                                */
                  (CPU_CHAR   *)"App Task Start",
                  (OS_TASK_PTR ) AppTaskStart,
@@ -173,45 +180,61 @@ static  void  AppTaskStart (void  *p_arg)
     AppRobotMotorDriveSensorEnable();
     
     /* Initialise the 2 Main Tasks to  Deleted State */
-    //OSTaskCreate((OS_TCB     *)&AppTaskOneTCB, (CPU_CHAR   *)"App Task One", (OS_TASK_PTR ) AppTaskOne, (void       *) 0, (OS_PRIO     ) APP_TASK_ONE_PRIO, (CPU_STK    *)&AppTaskOneStk[0], (CPU_STK_SIZE) APP_TASK_ONE_STK_SIZE / 10u, (CPU_STK_SIZE) APP_TASK_ONE_STK_SIZE, (OS_MSG_QTY  ) 0u, (OS_TICK     ) 0u, (void       *)(CPU_INT32U) 1, (OS_OPT      )(OS_OPT_TASK_STK_CHK | OS_OPT_TASK_STK_CLR), (OS_ERR     *)&err);
-    //OSTaskCreate((OS_TCB     *)&AppTaskTwoTCB, (CPU_CHAR   *)"App Task Two", (OS_TASK_PTR ) AppTaskTwo, (void       *) 0, (OS_PRIO     ) APP_TASK_TWO_PRIO, (CPU_STK    *)&AppTaskTwoStk[0], (CPU_STK_SIZE) APP_TASK_TWO_STK_SIZE / 10u, (CPU_STK_SIZE) APP_TASK_TWO_STK_SIZE, (OS_MSG_QTY  ) 0u, (OS_TICK     ) 0u, (void       *) (CPU_INT32U) 2, (OS_OPT      )(OS_OPT_TASK_STK_CHK | OS_OPT_TASK_STK_CLR), (OS_ERR     *)&err);
+    //OSTaskCreate((OS_TCB     *)&moveForwardTCB, (CPU_CHAR   *)"App Task One", (OS_TASK_PTR ) moveForward, (void       *) 0, (OS_PRIO     ) APP_TASK_ONE_PRIO, (CPU_STK    *)&moveForwardStk[0], (CPU_STK_SIZE) APP_TASK_ONE_STK_SIZE / 10u, (CPU_STK_SIZE) APP_TASK_ONE_STK_SIZE, (OS_MSG_QTY  ) 0u, (OS_TICK     ) 0u, (void       *)(CPU_INT32U) 1, (OS_OPT      )(OS_OPT_TASK_STK_CHK | OS_OPT_TASK_STK_CLR), (OS_ERR     *)&err);
+    //OSTaskCreate((OS_TCB     *)&LEDBlinkTCB, (CPU_CHAR   *)"App Task Two", (OS_TASK_PTR ) LEDBlink, (void       *) 0, (OS_PRIO     ) APP_TASK_TWO_PRIO, (CPU_STK    *)&LEDBlinkStk[0], (CPU_STK_SIZE) APP_TASK_TWO_STK_SIZE / 10u, (CPU_STK_SIZE) APP_TASK_TWO_STK_SIZE, (OS_MSG_QTY  ) 0u, (OS_TICK     ) 0u, (void       *) (CPU_INT32U) 2, (OS_OPT      )(OS_OPT_TASK_STK_CHK | OS_OPT_TASK_STK_CLR), (OS_ERR     *)&err);
 
     /* Delete this task */
     OSTaskDel((OS_TCB *)0, &err);
     
 }
 
-static  void  AppTaskOne (void  *p_arg)
+static  void  moveForward (void  *p_arg)
 { 
     OS_ERR      err;
-    CPU_INT32U  k, i, j;
     
-    if(iMove > 0)
-    {
-      if(iMove%2==0)
-      {  
-      RoboTurn(FRONT, 2, 50);
-      iMove--;
-      }
-      else{
-        RoboTurn(BACK, 2, 50);
-        iMove++;
-      }
-    }
+    RoboTurn(FRONT, 2, 50);
     
-    for(k=0; k<WORKLOAD1; k++)
-    {
-      for(i=0; i <ONESECONDTICK; i++){
-        j=2*i;
-      }
-     }
+    delay(ONESECONDTICK);
+    
+    OSTaskDel((OS_TCB *)0, &err);   
+
+}
+static  void  moveBackward (void  *p_arg)
+{ 
+    OS_ERR      err;
+    
+    RoboTurn(BACK, 2, 50);
+    
+    delay(ONESECONDTICK);
+    
+    OSTaskDel((OS_TCB *)0, &err);   
+
+}
+static  void  leftTurn (void  *p_arg)
+{ 
+    OS_ERR      err;
+    
+    RoboTurn(LEFT_SIDE, 2, 50);
+    
+    delay(ONESECONDTICK);
+    
+    OSTaskDel((OS_TCB *)0, &err);   
+
+}
+static  void  rightTurn (void  *p_arg)
+{ 
+    OS_ERR      err;
+    
+    RoboTurn(RIGHT_SIDE, 2, 50);
+    
+    delay(ONESECONDTICK);
     
     OSTaskDel((OS_TCB *)0, &err);   
 
 }
 
 
-static  void  AppTaskTwo (void  *p_arg)
+static  void  LEDBlink (void  *p_arg)
 {   
     OS_ERR      err;
     CPU_INT32U  i,k,j=0;
@@ -232,6 +255,17 @@ static  void  AppTaskTwo (void  *p_arg)
     BSP_LED_Off(0u);
    OSTaskDel((OS_TCB *)0, &err);
 
+}
+
+static void delay(CPU_INT32U amt)
+{
+  CPU_INT32U  k, i, j;
+  for(k=0; k<WORKLOAD1; k++)
+  {
+    for(i=0; i <amt; i++){
+      j=2*i;
+    }
+  }
 }
 
 static  void  AppRobotMotorDriveSensorEnable ()

@@ -703,6 +703,7 @@ struct  os_rec_task_node
         OS_TCB *tcb;
         OS_TASK_PTR taskPtr;
         CPU_STK* stkBasePtr;
+        CPU_CHAR taskName[10];
         OS_TICK nextRelease;
         OS_TICK nextDeadline; // in binary heap for task scheduler, nextDeadline should be the key to sort on
         OS_TICK releasePeriod; // in AVL tree for task recursion, releasePeriod should be the key to sort on
@@ -1143,6 +1144,7 @@ OS_EXT            OS_RDY_LIST            OSRdyList[OS_CFG_PRIO_MAX];  /* Table o
 OS_EXT            OS_REC_TASK_NODE       *OSRecRdyList[OS_REC_MAX_TASKS];       /* Binary heap that points to nodes of recursive tasks ready to run OS_REC__*/
 OS_EXT            OS_REC_TASK_AVLTREE_NODE       OSRecTaskAvltreeList[OS_REC_MAX_TASKS];                         /* AVL tree nodes (points to task nodes) for full list of recursive tasks */
 OS_EXT            OS_REC_TASK_NODE       OSRecTaskList[OS_REC_MAX_TASKS];                                        /* Task nodes for full list of recursive tasks */
+OS_EXT            OS_REC_TASK_AVLTREE_NODE       *OSRecTaskAvltreeListRoot;
 OS_EXT            OS_PRIO       OSRecTaskAvltreeListNumElements;                                        /* Keep track of max bound for avl tree list */
 OS_EXT            OS_PRIO       OSRecTaskListNumElements;                                        /* Keep track of max bound for avl tree list */
 OS_EXT            CPU_BOOLEAN       OSRecTaskRunning;                                        /* Keep track of max bound for avl tree list */
@@ -1711,6 +1713,7 @@ void          OSTaskTimeQuantaSet       (OS_TCB                *p_tcb,
 
 void          OSRecTaskCreate           (OS_TCB                *p_tcb,
                                          OS_TASK_PTR            taskPtr,
+                                         CPU_CHAR*              taskName,
                                          OS_TICK                releasePeriod,
                                          OS_TICK                deadline,
                                          OS_ERR                 *err);
