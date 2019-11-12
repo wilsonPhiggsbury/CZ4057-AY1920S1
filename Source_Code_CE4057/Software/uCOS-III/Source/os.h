@@ -699,6 +699,7 @@ struct  os_rdy_list {
 struct  os_rec_task_node 
 { 
 	struct os_rec_task_node *next; 
+	struct os_rec_task_node *nextBlocked; 
         // custom scheduler variables to track deadlines
         OS_TCB *tcb;
         OS_TASK_PTR taskPtr;
@@ -709,6 +710,11 @@ struct  os_rec_task_node
         OS_TICK releasePeriod; // in AVL tree for task recursion, releasePeriod should be the key to sort on
         OS_TICK deadline;
         OS_PRIO taskPrio;
+        
+        CPU_INT16U preemptionLevel; // for SRP purposes. lower deadline = higher priority
+        CPU_INT16U mutexStack[OS_SRP_MAX_MUTEXES]; // for well nested popping mutexes
+        CPU_INT16U mutexStackPtr;
+        CPU_BOOLEAN isHoldingMutex;
 };
 struct  os_rec_task_avltree_node
 {
@@ -719,7 +725,19 @@ struct  os_rec_task_avltree_node
 	struct os_rec_task_node *taskNode; 
   
 };
-
+typedef struct
+{
+        struct os_rec_task_node *taskNode;
+        int mutexIndex;
+        CPU_BOOLEAN isPend;
+}OS_SRP_MUTEX_QUEUEOBJ;
+// __ SRPBlockedTasks[] (arr of tasknodes) len OS_SRP_MAX_MUTEXES
+// __ SRPBlockedMutexes (bitmap)len OS_SRP_MAX_MUTEXES. INIT TO 0s
+// __ SRPResourceCeilings[]
+// __ SRPSystemCeiling
+// __ struct SRPMutex
+// __ OS_SRP_MAX_MUTEXES
+// __ OSSRPMutexCount
 /*
 ------------------------------------------------------------------------------------------------------------------------
 *                                           PEND DATA, PEND LIST and PEND OBJ
@@ -1149,7 +1167,14 @@ OS_EXT            OS_PRIO       OSRecTaskAvltreeListNumElements;                
 OS_EXT            OS_PRIO       OSRecTaskListNumElements;                                        /* Keep track of max bound for avl tree list */
 OS_EXT            CPU_BOOLEAN       OSRecTaskRunning;                                        /* Keep track of max bound for avl tree list */
 
-
+OS_EXT            OS_REC_TASK_NODE*      SRPBlockedTasks[OS_SRP_MAX_MUTEXES]; // arr of tasknodes
+OS_EXT            CPU_BOOLEAN           SRPBlockedMutexes[OS_SRP_MAX_MUTEXES]; // bitmap
+OS_EXT            CPU_INT16U            SRPResourceCeilings[OS_SRP_MAX_MUTEXES]; // keep track of all mutex's resource ceiling
+OS_EXT            CPU_INT16U            SRPSystemCeiling; // max of resource ceilings, only active ones!
+OS_EXT            CPU_INT16U            OSSRPMutexCount; // current number of initialized mutexes
+// __ struct SRPMutex
+// __ OS_SRP_MAX_MUTEXES
+// __ OSSRPMutexCount
 
 
 #ifdef OS_SAFETY_CRITICAL_IEC61508
@@ -1214,6 +1239,7 @@ OS_EXT            OS_CTR                 OSTmrUpdateCtr;
 #endif
                                                                       /* RECURSIVE SCHEDULER ------------------------ */
 OS_EXT            OS_TCB                 OSRecTaskTCB;                
+OS_EXT            OS_TCB                 OSSRPTaskTCB;                
 OS_EXT            OS_PRIO                OSRecRdyListCount;           /* Number of recursive tasks ready to run       */
 OS_EXT            OS_PRIO                OSRecTaskCount;              /* Number of recursive tasks that exist         */
 
@@ -1273,6 +1299,11 @@ extern  OS_PRIO       const OSCfg_RecTaskPrio;
 extern  CPU_STK     * const OSCfg_RecTaskStkBasePtr;
 extern  CPU_STK_SIZE  const OSCfg_RecTaskStkLimit;
 extern  CPU_STK_SIZE  const OSCfg_RecTaskStkSize;
+
+extern  OS_PRIO       const OSCfg_SRPTaskPrio;
+extern  CPU_STK     * const OSCfg_SRPTaskStkBasePtr;
+extern  CPU_STK_SIZE  const OSCfg_SRPTaskStkLimit;
+extern  CPU_STK_SIZE  const OSCfg_SRPTaskStkSize;
 
 extern  CPU_STK     * const OSCfg_RecTaskInstanceStkBasePtr;
 extern  CPU_STK_SIZE  const OSCfg_RecTaskInstanceStkLimit;
@@ -1711,7 +1742,7 @@ void          OSTaskTimeQuantaSet       (OS_TCB                *p_tcb,
                                          OS_ERR                *p_err);
 #endif
 
-void          OSRecTaskCreate           (OS_TCB                *p_tcb,
+OS_REC_TASK_NODE*  OSRecTaskCreate      (OS_TCB                *p_tcb,
                                          OS_TASK_PTR            taskPtr,
                                          CPU_CHAR*              taskName,
                                          OS_TICK                releasePeriod,
@@ -1896,6 +1927,11 @@ void          OS_TickTaskInit           (OS_ERR                *p_err);
 
 void          OS_RecTask                (void                  *p_arg);
 void          OS_RecTaskInit            (OS_ERR                *p_err);
+void          OS_SRPTask                (void                  *p_arg);
+void          OS_SRPTaskInit            (OS_ERR                *p_err);
+int OS_SRPMutexCreate(int resourceCeiling, OS_ERR* err);
+void OS_SRPMutexPend(OS_REC_TASK_NODE* n, int mutexIndex);
+void OS_SRPMutexPost(OS_REC_TASK_NODE* n, int mutexIndex);
 
 /*$PAGE*/
 /*

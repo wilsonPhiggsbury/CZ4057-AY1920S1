@@ -125,11 +125,20 @@ OS_REC_TASK_NODE* initNode(OS_TCB* taskTCB, OS_REC_TASK_NODE* node, OS_TASK_PTR 
         strcpy(node->taskName, taskName);
         
         node->next = (OS_REC_TASK_NODE*)0;
+        node->nextBlocked = (OS_REC_TASK_NODE*)0;
         
 	node->releasePeriod = releasePeriod; 
         node->deadline = deadline;
         node->nextRelease = releasePeriod; // start out on 1st release time
         node->nextDeadline = 0;
+        
+        node->preemptionLevel = OS_REC_MAX_TASKS;
+        for(int i=0; i<OS_SRP_MAX_MUTEXES; i++)
+        {
+          node->mutexStack[i] = 0;
+        }
+        node->mutexStackPtr = 0;
+        node->isHoldingMutex = 0;
         return node;
 }
 void initAvlNode(OS_REC_TASK_AVLTREE_NODE* node)
@@ -238,7 +247,7 @@ OS_REC_TASK_AVLTREE_NODE* minValueNode(OS_REC_TASK_AVLTREE_NODE* node)
     /* loop down to find the leftmost leaf */
     while (current->left != (OS_REC_TASK_AVLTREE_NODE*)0) 
         current = current->left; 
-    return current; 
+    return current;
 } 
   
 // Recursive function to delete a node with given key 
@@ -388,6 +397,7 @@ void  OS_RecTask (void *p_arg)
   OS_MSG_SIZE incomingNodeSize;
   CPU_TS ts;
   OS_TICK prevTick;
+  CPU_TS32 t;
   
   while(DEF_ON)
   {
@@ -397,8 +407,8 @@ void  OS_RecTask (void *p_arg)
     
     // will receive a node either from tick task releasing recursive tasks, or from OSTaskDel from recursive tasks requesting to delete themselves
      incomingNode = (OS_REC_TASK_NODE*)OSTaskQPend(0, OS_OPT_PEND_BLOCKING, &incomingNodeSize, &ts, &err);
- 
-     prevTick = OSTimeGet(&err);    
+     t = CPU_TS_Get32();
+     prevTick = OSTimeGet(&err);
      if(OSRecCheckNodeReady(incomingNode) == DEF_FALSE)
      {
        // this task wants to run!
@@ -427,7 +437,7 @@ void  OS_RecTask (void *p_arg)
                  (OS_OPT      )(OS_OPT_TASK_STK_CHK | OS_OPT_TASK_STK_CLR | OS_OPT_TASK_RECURSIVE),
                  (OS_ERR     *)&err);
       // TODO: use ts to calc time taken, in particular, OSTimeGet(&err) - ts}
-      printf("Task %s created %d, bin heap insertion took %d\n", incomingNode->taskName, OSTimeGet(&err), OSTimeGet(&err)-prevTick);
+      printf("Task %s created %d, bin heap insertion took %d/%d\n", incomingNode->taskName, OSTimeGet(&err), OSTimeGet(&err)-prevTick, CPU_TS32_to_uSec(CPU_TS_Get32()-t));
      }
      else
      {
@@ -445,7 +455,7 @@ void  OS_RecTask (void *p_arg)
        if(OSRecRdyListCount != 0)
          OSTaskChangePrio(OSRecRdyList[0]->tcb, OSRecRdyList[0]->taskPrio, &err); // refresh new root node's task priority to take removed node's place
        // OSSched should handle the rest
-       printf("Task %s completed in %d, bin heap deletion took %d\n", completedTask->taskName, OSTimeGet(&err)-completedTask->nextRelease+completedTask->releasePeriod, OSTimeGet(&err)-prevTick);
+       printf("Task %s completed in %d, bin heap deletion took %d/%d\n", completedTask->taskName, OSTimeGet(&err)-completedTask->nextRelease+completedTask->releasePeriod, OSTimeGet(&err)-prevTick, CPU_TS32_to_uSec(CPU_TS_Get32()-t));
        printf("Task %s next sched for %d.\n", completedTask->taskName, completedTask->nextRelease);
      }
   }
@@ -486,12 +496,12 @@ void OS_RecTaskInit(OS_ERR *p_err)
 // Recursive function to insert a key in the subtree rooted 
 // with node and returns the new root of the subtree. 
 // MUST BE CALLED BEFORE OSStart()!!
-void OSRecTaskCreate(OS_TCB* taskTCB, OS_TASK_PTR taskPtr, CPU_CHAR* taskName, OS_TICK releasePeriod, OS_TICK deadline, OS_ERR* err)
+OS_REC_TASK_NODE * OSRecTaskCreate(OS_TCB* taskTCB, OS_TASK_PTR taskPtr, CPU_CHAR* taskName, OS_TICK releasePeriod, OS_TICK deadline, OS_ERR* err)
 {
         if (OSRecTaskCount == OS_REC_MAX_TASKS)
         {
           *err = OS_ERR_Q_FULL;
-          return;
+          return 0;
         }
         *err = OS_ERR_NONE;
         
@@ -504,7 +514,10 @@ void OSRecTaskCreate(OS_TCB* taskTCB, OS_TASK_PTR taskPtr, CPU_CHAR* taskName, O
         OSRecTaskListNumElements++;
         // put it into AVL tree node
         OSRecTaskAvltreeListRoot = insertRecursive(OSRecTaskAvltreeListRoot, newNode, releasePeriod);
-        printAVLTree11();
+        // put it into ready list (temporary, at launch will remove everything and assign their "preemption level" for SRP)
+        OSRecRdyListInsert(newNode, err);
+        //printAVLTree11();
+        return newNode;
 }
 void OSRecReleaseListInsert(OS_REC_TASK_NODE *node, OS_ERR *err)
 {

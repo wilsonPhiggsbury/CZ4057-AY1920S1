@@ -49,6 +49,7 @@
 #define OS_CFG_PRIO_FLOOR               3u   // OS_CFG_REC_TASK_PRIO
 #define OS_CFG_PRIO_CEILING             18u  // OS_CFG_STAT_TASK_PRIO (ceil is non inclusive in the range)
 #define OS_REC_MAX_TASKS                18-3-1   
+#define OS_SRP_MAX_MUTEXES              10
                                               /* TODO: Priority ranges between OS_CFG_REC_TASK_PRIO to OS_CFG_STAT_TASK_PRIO are RESERVED for recursive tasks */
 
 #define OS_CFG_SCHED_LOCK_TIME_MEAS_EN  1u   /* Include code to measure scheduler lock time                           */

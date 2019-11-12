@@ -74,9 +74,13 @@
 #define  OS_CFG_TMR_WHEEL_SIZE            13u               /* Number of 'spokes' in timer wheel; SHOULD be prime     */
 
                                                             /* -------------------TASK  RECURSION ------------------- */
-#define  OS_CFG_REC_TASK_PRIO               3u              /* Task Recursion prio MUST BE ABOVE Statistic Task prio  */
+#define  OS_CFG_REC_TASK_PRIO               4u              /* Task Recursion prio MUST BE ABOVE Statistic Task prio  */
 #define  OS_CFG_REC_TASK_STK_SIZE          128u
 #define  OS_CFG_REC_TASK_INSTANCE_STK_SIZE 128u
+                                                            /* -------------------SRP TASK ------------------- */
+#define  OS_CFG_SRP_TASK_PRIO               3u              /* Task SRP prio MUST BE ABOVE RecTask */
+#define  OS_CFG_SRP_TASK_STK_SIZE          128u
+#define  OS_CFG_SRP_TASK_INSTANCE_STK_SIZE 128u
 //#define OS_REC_MAX_TASKS                OS_CFG_STAT_TASK_PRIO-OS_CFG_REC_TASK_PRIO-1   
                                               /* TODO: Priority ranges between OS_CFG_REC_TASK_PRIO to OS_CFG_STAT_TASK_PRIO are RESERVED for recursive tasks */
 /* must have contiguous priority gap between TASK RECURSION and STATISTIC TASK */

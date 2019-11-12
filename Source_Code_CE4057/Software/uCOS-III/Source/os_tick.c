@@ -109,7 +109,7 @@ void  OS_TickTask (void *p_arg)
     OS_ERR  err;
     CPU_TS  ts;
 
-
+    CPU_TS32 t;
     OS_TICK prevTick;
     p_arg = p_arg;                                          /* Prevent compiler warning                               */
 
@@ -144,7 +144,7 @@ void  OS_TickTask (void *p_arg)
                 tmpAvlNode = tmpAvlNode->left;
               }
               releaseWatchlist = tmpAvlNode->taskNode;
-              printf("Next dispatch @ %d\n", releaseWatchlist->nextRelease);
+              //printf("Next dispatch @ %d\n", releaseWatchlist->nextRelease);
 //              OS_REC_TASK_AVLTREE_NODE* smallestAvlNode = tmpAvlNode;
 //              while(tmpAvlNode->left != emptyNode || tmpAvlNode->right != emptyNode)
 //              {
@@ -176,6 +176,7 @@ void  OS_TickTask (void *p_arg)
 //              }
 //              releaseWatchlist = smallestAvlNode->taskNode;
             }
+            t = CPU_TS_Get32();
             OS_TICK thisTick = OSTimeGet(&err);//OS_TS_GET(); 
             if(thisTick >= releaseWatchlist->nextRelease)
             {
@@ -207,7 +208,7 @@ void  OS_TickTask (void *p_arg)
                 tmpNode = tmp;
               }
               releaseWatchlist = (OS_REC_TASK_NODE*)0;
-              printf("Del and re-insertion of AVL tree took %d\n", OSTimeGet(&err)-prevTick);
+              printf("Del and re-insertion of AVL tree took %d/%d\n", OSTimeGet(&err)-prevTick, CPU_TS32_to_uSec(CPU_TS_Get32()-t));
               //printf("****** AFT ******\n");
               //printAVLTreeStructure();
               //printAVLTree(tmpNode);

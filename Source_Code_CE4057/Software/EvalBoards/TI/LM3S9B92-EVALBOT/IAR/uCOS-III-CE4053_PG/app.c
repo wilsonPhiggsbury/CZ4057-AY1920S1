@@ -80,7 +80,11 @@ CPU_INT32U      iCounter= 1;
 CPU_INT32U      iMove   = 10;
 CPU_INT32U      measure=0;
 
-
+OS_REC_TASK_NODE* led = 0;
+OS_REC_TASK_NODE* f = 0;
+OS_REC_TASK_NODE* b = 0;
+OS_REC_TASK_NODE* l = 0;
+OS_REC_TASK_NODE* r = 0;
 /*
 *********************************************************************************************************
 *                                         FUNCTION PROTOTYPES
@@ -112,7 +116,7 @@ static  void        LEDBlink                      (void  *p_arg);
 * Returns     : none
 *********************************************************************************************************
 */
-
+int mutex1, mutex2;
 int  main (void)
 {
     OS_ERR  err;
@@ -121,12 +125,15 @@ int  main (void)
     OSInit(&err);                                               /* Init uC/OS-III.                                      */
 
     OSRecTaskRunning = DEF_TRUE;
+    mutex1 = OS_SRPMutexCreate(4, &err); 
+    mutex2 = OS_SRPMutexCreate(3, &err); 
 
-    OSRecTaskCreate(&LEDBlinkTCB, LEDBlink, "Blink", 5000, 5000, &err);
-    OSRecTaskCreate(&moveForwardTCB, moveForward, "Forwd", 10000, 10000, &err);
-    OSRecTaskCreate(&moveBackwardTCB, moveBackward, "Bckwd", 17000, 17000, &err);
-    OSRecTaskCreate(&leftTurnTCB, leftTurn, "LTurn", 25000, 25000, &err);
-    OSRecTaskCreate(&rightTurnTCB, rightTurn, "RTurn", 47000, 47000, &err);
+    // resource ceiling are 5, 4, 3, 2, 1 respectively
+    led = OSRecTaskCreate(&LEDBlinkTCB, LEDBlink, "Blink", 5000, 5000, &err);
+    f = OSRecTaskCreate(&moveForwardTCB, moveForward, "Forwd", 10000, 10000, &err);
+    b = OSRecTaskCreate(&moveBackwardTCB, moveBackward, "Bckwd", 17000, 17000, &err);
+    l = OSRecTaskCreate(&leftTurnTCB, leftTurn, "LTurn", 25000, 25000, &err);
+    r = OSRecTaskCreate(&rightTurnTCB, rightTurn, "RTurn", 47000, 47000, &err);
     OSTaskCreate((OS_TCB     *)&AppTaskStartTCB,           /* Create the start task                                */
                  (CPU_CHAR   *)"App Task Start",
                  (OS_TASK_PTR ) AppTaskStart,
@@ -191,21 +198,29 @@ static  void  AppTaskStart (void  *p_arg)
 static  void  moveForward (void  *p_arg)
 { 
     OS_ERR      err;
-    
+    OS_REC_TASK_NODE* thisNode = f;
+    OS_SRPMutexPend(thisNode, mutex1);
     RoboTurn(FRONT, 2, 50);
     
     delay(ONESECONDTICK);
     
+    OS_SRPMutexPost(thisNode, mutex1);
     OSTaskDel((OS_TCB *)0, &err);   
 
 }
 static  void  moveBackward (void  *p_arg)
 { 
     OS_ERR      err;
-    
+    OS_REC_TASK_NODE* thisNode = b;
+    OS_SRPMutexPend(thisNode, mutex1);
+    OS_SRPMutexPend(thisNode, mutex2);
     RoboTurn(BACK, 2, 50);
     
     delay(ONESECONDTICK);
+    
+    OS_SRPMutexPost(thisNode, mutex2);
+    OS_SRPMutexPost(thisNode, mutex1);
+    
     
     OSTaskDel((OS_TCB *)0, &err);   
 
@@ -213,6 +228,7 @@ static  void  moveBackward (void  *p_arg)
 static  void  leftTurn (void  *p_arg)
 { 
     OS_ERR      err;
+    OS_REC_TASK_NODE* thisNode = l;
     
     RoboTurn(LEFT_SIDE, 2, 50);
     
@@ -224,6 +240,7 @@ static  void  leftTurn (void  *p_arg)
 static  void  rightTurn (void  *p_arg)
 { 
     OS_ERR      err;
+    OS_REC_TASK_NODE* thisNode = r;
     
     RoboTurn(RIGHT_SIDE, 2, 50);
     
@@ -237,6 +254,7 @@ static  void  rightTurn (void  *p_arg)
 static  void  LEDBlink (void  *p_arg)
 {   
     OS_ERR      err;
+    OS_REC_TASK_NODE* thisNode = led;
     CPU_INT32U  i,k,j=0;
    
 //    for(i=0; i <(ONESECONDTICK); i++)
@@ -329,7 +347,7 @@ void IntWheelSensor()
 }
 
 void RoboTurn(tSide dir, CPU_INT16U seg, CPU_INT16U speed)
-{
+{return;
 	Left_tgt = seg;
         Right_tgt = seg;
 
