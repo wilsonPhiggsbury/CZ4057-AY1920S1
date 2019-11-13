@@ -1,0 +1,12 @@
+lib_math.pbi: C:\Users\MX\Desktop\CZ4057-AY1920S1\uC-LIB\lib_math.c \
+  C:\Users\MX\Desktop\CZ4057-AY1920S1\uC-LIB\lib_math.h \
+  C:\Users\MX\Desktop\CZ4057-AY1920S1\EvalBoards\TI\LM3S9B92-EVALBOT\IAR\uCOS-III-CE4053_PG\..\..\..\..\..\uC-CPU\ARM-Cortex-M3\IAR\cpu.h \
+  C:\Users\MX\Desktop\CZ4057-AY1920S1\EvalBoards\TI\LM3S9B92-EVALBOT\IAR\uCOS-III-CE4053_PG\..\..\..\..\..\uC-CPU\cpu_def.h \
+  C:\Users\MX\Desktop\CZ4057-AY1920S1\EvalBoards\TI\LM3S9B92-EVALBOT\IAR\uCOS-III-CE4053_PG\..\CFG\cpu_cfg.h \
+  C:\Users\MX\Desktop\CZ4057-AY1920S1\EvalBoards\TI\LM3S9B92-EVALBOT\IAR\uCOS-III-CE4053_PG\..\..\..\..\..\uC-CPU\cpu_core.h \
+  C:\Users\MX\Desktop\CZ4057-AY1920S1\uC-LIB\lib_def.h \
+  C:\Users\MX\Desktop\CZ4057-AY1920S1\uC-LIB\lib_mem.h \
+  C:\Users\MX\Desktop\CZ4057-AY1920S1\EvalBoards\TI\LM3S9B92-EVALBOT\IAR\uCOS-III-CE4053_PG\app_cfg.h \
+  C:\Users\MX\Desktop\CZ4057-AY1920S1\EvalBoards\TI\LM3S9B92-EVALBOT\IAR\uCOS-III-CE4053_PG\..\CFG\lib_cfg.h \
+  C:\Users\MX\Desktop\CZ4057-AY1920S1\uC-LIB\lib_str.h \
+  C:\Users\MX\Desktop\CZ4057-AY1920S1\uC-LIB\lib_ascii.h
