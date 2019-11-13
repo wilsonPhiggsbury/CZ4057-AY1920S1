@@ -88,7 +88,7 @@
 *.bin
 *.sim
 *.xcl
-*.dep
+
 *.ninja
 *.ninja_log
 *.ninja_deps
@@ -117,9 +117,5 @@ dkms.conf
 *.pbd
 
 *.pbw
-
-*.ewp
-
-*.ewt
 
 *.browse
