@@ -42,7 +42,54 @@ const  CPU_CHAR  *os_tick__c = "$Id: $";
 ************************************************************************************************************************
 */
 
-
+void printAVLTreeRec(OS_REC_TASK_AVLTREE_NODE* n, int num)
+{
+//  OSRecRdyList[OSRecRdyListCount];
+//  OSRecTaskAvltreeList[OSRecTaskAvltreeListNumElements];
+//  OSRecTaskList[OSRecTaskListNumElements];
+  
+  OS_REC_TASK_AVLTREE_NODE* tmp = n;
+  OS_REC_TASK_AVLTREE_NODE* empty = (OS_REC_TASK_AVLTREE_NODE*)0;
+printf("#%d:%d ", num, n->taskNode->nextRelease);
+  if(tmp->left != empty)
+  {
+    printf("L ");
+    printAVLTreeRec(tmp->left, num+1);
+  }
+  if(tmp->right != empty)
+  {
+    printf("R ");
+    printAVLTreeRec(tmp->right, num+1);
+  }
+}
+void printAVLTreeStructure()
+{
+  printf("--- AVL struct ---\n");
+  // pre-order traversal
+  printAVLTreeRec(OSRecTaskAvltreeListRoot, 0);
+  printf("\n");
+}
+void printAVLTree(OS_REC_TASK_NODE* n)
+{
+  printf("--- AVL tree ---\n");
+  for(int i=0;i<OSRecTaskAvltreeListNumElements;i++)
+  {
+    // which avl node is this release? mark with '#'
+    if(n->nextRelease == OSRecTaskAvltreeList[i].taskNode->nextRelease)
+      printf("  AVL #%d has %d nodes @ %d\n", i, OSRecTaskAvltreeList[i].numTaskNodes, OSRecTaskAvltreeList[i].taskNode->nextRelease);
+    else
+      printf("  AVL *%d has %d nodes @ %d\n", i, OSRecTaskAvltreeList[i].numTaskNodes, OSRecTaskAvltreeList[i].taskNode->nextRelease);
+    if(OSRecTaskAvltreeList[i].numTaskNodes != 0)
+    {
+      OS_REC_TASK_NODE* tmp = OSRecTaskAvltreeList[i].taskNode;
+      while(tmp != (OS_REC_TASK_NODE*)0)
+      {
+        printf("    Task Node %s\n", tmp->taskName);      
+        tmp = tmp->next;
+      }
+    }
+  }
+}
 /*
 ************************************************************************************************************************
 *                                                      TICK TASK
@@ -62,9 +109,18 @@ void  OS_TickTask (void *p_arg)
     OS_ERR  err;
     CPU_TS  ts;
 
-
+    CPU_TS32 t;
+    OS_TICK prevTick;
     p_arg = p_arg;                                          /* Prevent compiler warning                               */
 
+    /* DATA STRUCT to dispatch recursive tasks */
+    OS_REC_TASK_NODE* releaseWatchlist = (OS_REC_TASK_NODE*)0;
+    // release every single recursive task at time t=0!
+    for(OS_PRIO i=0; i<OSRecTaskListNumElements; i++)
+    {
+      printf("Task %s dispatched %d.\n", OSRecTaskList[i].taskName, OSTimeGet(&err));
+      OSTaskQPost(&OSRecTaskTCB, (void*)&OSRecTaskList[i], (OS_MSG_SIZE)sizeof(OS_REC_TASK_NODE), OS_OPT_POST_FIFO, &err);
+    }
     while (DEF_ON) {
         (void)OSTaskSemPend((OS_TICK  )0,
                             (OS_OPT   )OS_OPT_PEND_BLOCKING,
@@ -74,6 +130,90 @@ void  OS_TickTask (void *p_arg)
             if (OSRunning == OS_STATE_OS_RUNNING) {
                 OS_TickListUpdate();                        /* Update all tasks waiting for time                      */
             }
+            /* CODE to dispatch recursive tasks */
+            if(releaseWatchlist == (OS_REC_TASK_NODE*)0)
+            {
+              // store a copy of the avl linked list, these are the tasks to dispatch now
+              // traverse down avl tree leftward to find smallest next release time node
+              OS_REC_TASK_AVLTREE_NODE* tmpAvlNode = OSRecTaskAvltreeListRoot; // start from the root node
+              OS_REC_TASK_AVLTREE_NODE* emptyNode = (OS_REC_TASK_AVLTREE_NODE*)0;
+              if(tmpAvlNode == emptyNode)
+                continue;
+              while(tmpAvlNode->left != emptyNode)
+              {
+                tmpAvlNode = tmpAvlNode->left;
+              }
+              releaseWatchlist = tmpAvlNode->taskNode;
+              //printf("Next dispatch @ %d\n", releaseWatchlist->nextRelease);
+//              OS_REC_TASK_AVLTREE_NODE* smallestAvlNode = tmpAvlNode;
+//              while(tmpAvlNode->left != emptyNode || tmpAvlNode->right != emptyNode)
+//              {
+//                OS_REC_TASK_AVLTREE_NODE* lNode = tmpAvlNode->left;
+//                OS_REC_TASK_AVLTREE_NODE* rNode = tmpAvlNode->right;
+//                if(tmpAvlNode->left != emptyNode && tmpAvlNode->right != emptyNode)
+//                {
+//                  if(lNode->taskNode->nextRelease < rNode->taskNode->nextRelease)
+//                  {
+//                    smallestAvlNode = lNode->taskNode->nextRelease < tmpAvlNode->taskNode->nextRelease ? lNode : tmpAvlNode;
+//                    tmpAvlNode = lNode;
+//                  }
+//                  else
+//                  {
+//                    smallestAvlNode = rNode->taskNode->nextRelease < tmpAvlNode->taskNode->nextRelease ? rNode : tmpAvlNode;
+//                    tmpAvlNode = rNode;
+//                  }
+//                }
+//                else if(tmpAvlNode->left == emptyNode)
+//                {
+//                  smallestAvlNode = rNode->taskNode->nextRelease < tmpAvlNode->taskNode->nextRelease ? rNode : tmpAvlNode;
+//                  tmpAvlNode = rNode;
+//                }
+//                else
+//                {
+//                  smallestAvlNode = lNode->taskNode->nextRelease < tmpAvlNode->taskNode->nextRelease ? lNode : tmpAvlNode;
+//                  tmpAvlNode = lNode;
+//                }
+//              }
+//              releaseWatchlist = smallestAvlNode->taskNode;
+            }
+            t = CPU_TS_Get32();
+            OS_TICK thisTick = OSTimeGet(&err);//OS_TS_GET(); 
+            if(thisTick >= releaseWatchlist->nextRelease)
+            {
+              // TODO: verify, all nextRelease should be the same
+              // release the tasks
+              OS_REC_TASK_NODE* tmpNode = releaseWatchlist;
+              //printf("****** BEF ******\n");
+              //printAVLTreeStructure();
+              //printAVLTree(tmpNode);
+              while(tmpNode != (OS_REC_TASK_NODE*)0)
+              {
+                OSTaskQPost(&OSRecTaskTCB, (void*)tmpNode, (OS_MSG_SIZE)sizeof(OS_REC_TASK_NODE), OS_OPT_POST_FIFO, &err);
+                printf("Task %s dispatched %d.\n", tmpNode->taskName, OSTimeGet(&err));
+                tmpNode = tmpNode->next;
+              }
+              // remove the avl node
+              OSRecReleaseListRemove(&releaseWatchlist[0], &err);
+              //printf("RM ");printAVLTreeStructure();
+              prevTick = OSTimeGet(&err);
+              // decide the next release period, then insert these nodes back into (most probably different) avl nodes
+              tmpNode = releaseWatchlist;
+              while(tmpNode != (OS_REC_TASK_NODE*)0)
+              {
+                tmpNode->nextRelease += tmpNode->releasePeriod;
+                // save the next ptr since insertion will make it forget
+                OS_REC_TASK_NODE* tmp = tmpNode->next;
+                OSRecReleaseListInsert(tmpNode, &err);
+              //printf("IN ");printAVLTreeStructure();
+                tmpNode = tmp;
+              }
+              releaseWatchlist = (OS_REC_TASK_NODE*)0;
+              printf("Del and re-insertion of AVL tree took %d/%d\n", OSTimeGet(&err)-prevTick, CPU_TS32_to_uSec(CPU_TS_Get32()-t));
+              //printf("****** AFT ******\n");
+              //printAVLTreeStructure();
+              //printAVLTree(tmpNode);
+            }
+            //OSTaskQPost(&OSRecTaskTCB, (void*)releaseWatchlist, (OS_MSG_SIZE)sizeof(OS_REC_TASK_NODE), OS_OPT_POST_FIFO, &err);
         }
     }
 }

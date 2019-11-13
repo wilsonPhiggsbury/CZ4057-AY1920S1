@@ -136,7 +136,16 @@ void  OSInit (OS_ERR  *p_err)
     if (*p_err != OS_ERR_NONE) {
         return;
     }
-
+    
+    OS_RecTaskInit(p_err);                                  /* Initialize the Recursive Task                          */
+    if (*p_err != OS_ERR_NONE) {
+        return;
+    }
+    OSRecTaskRunning = DEF_TRUE;
+    OS_SRPTaskInit(p_err);                                  /* Initialize the SRP Task                          */
+    if (*p_err != OS_ERR_NONE) {
+        return;
+    }
 
 #if OS_CFG_STAT_TASK_EN > 0u                                /* Initialize the Statistic Task                          */
     OS_StatTaskInit(p_err);

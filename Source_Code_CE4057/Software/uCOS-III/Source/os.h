@@ -329,6 +329,7 @@ extern "C" {
 #define  OS_OPT_TASK_STK_CHK                 (OS_OPT)(0x0001u)  /* Enable stack checking for the task                 */
 #define  OS_OPT_TASK_STK_CLR                 (OS_OPT)(0x0002u)  /* Clear the stack when the task is create            */
 #define  OS_OPT_TASK_SAVE_FP                 (OS_OPT)(0x0004u)  /* Save the contents of any floating-point registers  */
+#define  OS_OPT_TASK_RECURSIVE               (OS_OPT)(0x0008u)  /* The task is recursive */
 
 /*
 ------------------------------------------------------------------------------------------------------------------------
@@ -636,6 +637,8 @@ typedef  void                      (*OS_TASK_PTR)(void *p_arg);
 typedef  struct  os_tcb              OS_TCB;
 
 typedef  struct  os_rdy_list         OS_RDY_LIST;
+typedef  struct  os_rec_task_node     OS_REC_TASK_NODE; 
+typedef  struct  os_rec_task_avltree_node     OS_REC_TASK_AVLTREE_NODE;
 
 typedef  struct  os_tick_spoke       OS_TICK_SPOKE;
 
@@ -692,8 +695,49 @@ struct  os_rdy_list {
     OS_TCB              *TailPtr;                           /* Pointer to last task          at selected priority     */
     OS_OBJ_QTY           NbrEntries;                        /* Number of entries             at selected priority     */
 };
-
-
+// OS_REC__
+struct  os_rec_task_node 
+{ 
+	struct os_rec_task_node *next; 
+	struct os_rec_task_node *nextBlocked; 
+        // custom scheduler variables to track deadlines
+        OS_TCB *tcb;
+        OS_TASK_PTR taskPtr;
+        CPU_STK* stkBasePtr;
+        CPU_CHAR taskName[10];
+        OS_TICK nextRelease;
+        OS_TICK nextDeadline; // in binary heap for task scheduler, nextDeadline should be the key to sort on
+        OS_TICK releasePeriod; // in AVL tree for task recursion, releasePeriod should be the key to sort on
+        OS_TICK deadline;
+        OS_PRIO taskPrio;
+        
+        CPU_INT16U preemptionLevel; // for SRP purposes. lower deadline = higher priority
+        CPU_INT16U mutexStack[OS_SRP_MAX_MUTEXES]; // for well nested popping mutexes
+        CPU_INT16U mutexStackPtr;
+        CPU_BOOLEAN isHoldingMutex;
+};
+struct  os_rec_task_avltree_node
+{
+	struct os_rec_task_avltree_node *left; 
+	struct os_rec_task_avltree_node *right; 
+	CPU_INT16U height; 
+	CPU_INT16U numTaskNodes; 
+	struct os_rec_task_node *taskNode; 
+  
+};
+typedef struct
+{
+        struct os_rec_task_node *taskNode;
+        int mutexIndex;
+        CPU_BOOLEAN isPend;
+}OS_SRP_MUTEX_QUEUEOBJ;
+// __ SRPBlockedTasks[] (arr of tasknodes) len OS_SRP_MAX_MUTEXES
+// __ SRPBlockedMutexes (bitmap)len OS_SRP_MAX_MUTEXES. INIT TO 0s
+// __ SRPResourceCeilings[]
+// __ SRPSystemCeiling
+// __ struct SRPMutex
+// __ OS_SRP_MAX_MUTEXES
+// __ OSSRPMutexCount
 /*
 ------------------------------------------------------------------------------------------------------------------------
 *                                           PEND DATA, PEND LIST and PEND OBJ
@@ -905,6 +949,8 @@ struct os_tcb {
     OS_PRIO              Prio;                              /* Task priority (0 == highest)                           */
     CPU_STK_SIZE         StkSize;                           /* Size of task stack (in number of stack elements)       */
     OS_OPT               Opt;                               /* Task options as passed by OSTaskCreate()               */
+    
+    OS_REC_TASK_NODE     *RecursiveTaskNode;                 /* Associated task node for entry in Bin Heap / AVL tree  */
 
     OS_OBJ_QTY           PendDataTblEntries;                /* Size of array of objects to pend on                    */
 
@@ -990,7 +1036,6 @@ struct  os_tick_spoke {
     OS_OBJ_QTY           NbrEntries;                        /* Current number of entries in the tick spoke            */
     OS_OBJ_QTY           NbrEntriesMax;                     /* Peak number of entries in the tick spoke               */
 };
-
 
 /*
 ------------------------------------------------------------------------------------------------------------------------
@@ -1114,6 +1159,22 @@ OS_EXT            OS_OBJ_QTY             OSQQty;                      /* Number 
 
                                                                       /* READY LIST --------------------------------- */
 OS_EXT            OS_RDY_LIST            OSRdyList[OS_CFG_PRIO_MAX];  /* Table of tasks ready to run                  */
+OS_EXT            OS_REC_TASK_NODE       *OSRecRdyList[OS_REC_MAX_TASKS];       /* Binary heap that points to nodes of recursive tasks ready to run OS_REC__*/
+OS_EXT            OS_REC_TASK_AVLTREE_NODE       OSRecTaskAvltreeList[OS_REC_MAX_TASKS];                         /* AVL tree nodes (points to task nodes) for full list of recursive tasks */
+OS_EXT            OS_REC_TASK_NODE       OSRecTaskList[OS_REC_MAX_TASKS];                                        /* Task nodes for full list of recursive tasks */
+OS_EXT            OS_REC_TASK_AVLTREE_NODE       *OSRecTaskAvltreeListRoot;
+OS_EXT            OS_PRIO       OSRecTaskAvltreeListNumElements;                                        /* Keep track of max bound for avl tree list */
+OS_EXT            OS_PRIO       OSRecTaskListNumElements;                                        /* Keep track of max bound for avl tree list */
+OS_EXT            CPU_BOOLEAN       OSRecTaskRunning;                                        /* Keep track of max bound for avl tree list */
+
+OS_EXT            OS_REC_TASK_NODE*      SRPBlockedTasks[OS_SRP_MAX_MUTEXES]; // arr of tasknodes
+OS_EXT            CPU_BOOLEAN           SRPBlockedMutexes[OS_SRP_MAX_MUTEXES]; // bitmap
+OS_EXT            CPU_INT16U            SRPResourceCeilings[OS_SRP_MAX_MUTEXES]; // keep track of all mutex's resource ceiling
+OS_EXT            CPU_INT16U            SRPSystemCeiling; // max of resource ceilings, only active ones!
+OS_EXT            CPU_INT16U            OSSRPMutexCount; // current number of initialized mutexes
+// __ struct SRPMutex
+// __ OS_SRP_MAX_MUTEXES
+// __ OSSRPMutexCount
 
 
 #ifdef OS_SAFETY_CRITICAL_IEC61508
@@ -1176,6 +1237,11 @@ OS_EXT            OS_TICK                OSTmrTickCtr;                /* Current
 OS_EXT            OS_CTR                 OSTmrUpdateCnt;              /* Counter for updating timers                  */
 OS_EXT            OS_CTR                 OSTmrUpdateCtr;
 #endif
+                                                                      /* RECURSIVE SCHEDULER ------------------------ */
+OS_EXT            OS_TCB                 OSRecTaskTCB;                
+OS_EXT            OS_TCB                 OSSRPTaskTCB;                
+OS_EXT            OS_PRIO                OSRecRdyListCount;           /* Number of recursive tasks ready to run       */
+OS_EXT            OS_PRIO                OSRecTaskCount;              /* Number of recursive tasks that exist         */
 
                                                                       /* TCBs --------------------------------------- */
 OS_EXT            OS_TCB                *OSTCBCurPtr;                 /* Pointer to currently running TCB             */
@@ -1228,6 +1294,20 @@ extern  CPU_STK_SIZE  const OSCfg_TickTaskStkSize;
 extern  CPU_INT32U    const OSCfg_TickTaskStkSizeRAM;
 extern  OS_OBJ_QTY    const OSCfg_TickWheelSize;
 extern  CPU_INT32U    const OSCfg_TickWheelSizeRAM;
+
+extern  OS_PRIO       const OSCfg_RecTaskPrio;
+extern  CPU_STK     * const OSCfg_RecTaskStkBasePtr;
+extern  CPU_STK_SIZE  const OSCfg_RecTaskStkLimit;
+extern  CPU_STK_SIZE  const OSCfg_RecTaskStkSize;
+
+extern  OS_PRIO       const OSCfg_SRPTaskPrio;
+extern  CPU_STK     * const OSCfg_SRPTaskStkBasePtr;
+extern  CPU_STK_SIZE  const OSCfg_SRPTaskStkLimit;
+extern  CPU_STK_SIZE  const OSCfg_SRPTaskStkSize;
+
+extern  CPU_STK     * const OSCfg_RecTaskInstanceStkBasePtr;
+extern  CPU_STK_SIZE  const OSCfg_RecTaskInstanceStkLimit;
+extern  CPU_STK_SIZE  const OSCfg_RecTaskInstanceStkSize;
 
 extern  OS_PRIO       const OSCfg_TmrTaskPrio;
 extern  OS_RATE_HZ    const OSCfg_TmrTaskRate_Hz;
@@ -1662,6 +1742,16 @@ void          OSTaskTimeQuantaSet       (OS_TCB                *p_tcb,
                                          OS_ERR                *p_err);
 #endif
 
+OS_REC_TASK_NODE*  OSRecTaskCreate      (OS_TCB                *p_tcb,
+                                         OS_TASK_PTR            taskPtr,
+                                         CPU_CHAR*              taskName,
+                                         OS_TICK                releasePeriod,
+                                         OS_TICK                deadline,
+                                         OS_ERR                 *err);
+void            OSRecRdyListInsert(OS_REC_TASK_NODE *n, OS_ERR *err);
+OS_REC_TASK_NODE* OSRecRdyListExtractNext(OS_ERR *err);
+CPU_BOOLEAN OSRecCheckNodeReady(OS_REC_TASK_NODE* n);
+
 /* ------------------------------------------------ INTERNAL FUNCTIONS ---------------------------------------------- */
 
 void          OS_TaskBlock              (OS_TCB                *p_tcb,
@@ -1834,6 +1924,14 @@ void          OS_StatTaskInit           (OS_ERR                *p_err);
 
 void          OS_TickTask               (void                  *p_arg);
 void          OS_TickTaskInit           (OS_ERR                *p_err);
+
+void          OS_RecTask                (void                  *p_arg);
+void          OS_RecTaskInit            (OS_ERR                *p_err);
+void          OS_SRPTask                (void                  *p_arg);
+void          OS_SRPTaskInit            (OS_ERR                *p_err);
+int OS_SRPMutexCreate(int resourceCeiling, OS_ERR* err);
+void OS_SRPMutexPend(OS_REC_TASK_NODE* n, int mutexIndex);
+void OS_SRPMutexPost(OS_REC_TASK_NODE* n, int mutexIndex);
 
 /*$PAGE*/
 /*
@@ -2046,6 +2144,9 @@ void          OS_TickListResetPeak      (void);
 
 void          OS_TickListUpdate         (void);
 
+/* ------------------------------------------- RECURSION LIST MANAGEMENT -------------------------------------------OS_REC__ */
+void OSRecReleaseListInsert(OS_REC_TASK_NODE *node, OS_ERR *err);
+void OSRecReleaseListRemove(OS_REC_TASK_NODE *node, OS_ERR *err);
 /*$PAGE*/
 /*
 ************************************************************************************************************************

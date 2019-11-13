@@ -44,6 +44,10 @@ const  CPU_CHAR  *os_cfg_app__c = "$Id: $";
 #define  OS_CFG_STAT_TASK_STK_LIMIT      ((OS_CFG_STAT_TASK_STK_SIZE  * OS_CFG_TASK_STK_LIMIT_PCT_EMPTY) / 100u)
 #define  OS_CFG_TICK_TASK_STK_LIMIT      ((OS_CFG_TICK_TASK_STK_SIZE  * OS_CFG_TASK_STK_LIMIT_PCT_EMPTY) / 100u)
 #define  OS_CFG_TMR_TASK_STK_LIMIT       ((OS_CFG_TMR_TASK_STK_SIZE   * OS_CFG_TASK_STK_LIMIT_PCT_EMPTY) / 100u)
+#define  OS_CFG_SRP_TASK_STK_LIMIT       ((OS_CFG_SRP_TASK_STK_SIZE   * OS_CFG_TASK_STK_LIMIT_PCT_EMPTY) / 100u)
+#define  OS_CFG_REC_TASK_STK_LIMIT       ((OS_CFG_REC_TASK_STK_SIZE   * OS_CFG_TASK_STK_LIMIT_PCT_EMPTY) / 100u)
+#define  OS_CFG_REC_TASK_INSTANCE_STK_LIMIT       ((OS_CFG_REC_TASK_INSTANCE_STK_SIZE   * OS_CFG_TASK_STK_LIMIT_PCT_EMPTY) / 100u)
+
 
 /*
 ************************************************************************************************************************
@@ -72,6 +76,10 @@ CPU_STK        OSCfg_StatTaskStk   [OS_CFG_STAT_TASK_STK_SIZE];
 
 CPU_STK        OSCfg_TickTaskStk   [OS_CFG_TICK_TASK_STK_SIZE];
 OS_TICK_SPOKE  OSCfg_TickWheel     [OS_CFG_TICK_WHEEL_SIZE];
+
+CPU_STK        OSCfg_SRPTaskStk    [OS_CFG_SRP_TASK_STK_SIZE];
+CPU_STK        OSCfg_RecTaskStk    [OS_CFG_REC_TASK_STK_SIZE];
+CPU_STK        OSCfg_RecTaskInstanceStk    [OS_REC_MAX_TASKS][OS_CFG_REC_TASK_INSTANCE_STK_SIZE];
 
 #if (OS_CFG_TMR_EN > 0u)
 CPU_STK        OSCfg_TmrTaskStk    [OS_CFG_TMR_TASK_STK_SIZE];
@@ -160,6 +168,20 @@ CPU_STK_SIZE   const  OSCfg_TickTaskStkSize      = (CPU_STK_SIZE)OS_CFG_TICK_TAS
 CPU_INT32U     const  OSCfg_TickTaskStkSizeRAM   = (CPU_INT32U  )sizeof(OSCfg_TickTaskStk);
 OS_OBJ_QTY     const  OSCfg_TickWheelSize        = (OS_OBJ_QTY  )OS_CFG_TICK_WHEEL_SIZE;
 CPU_INT32U     const  OSCfg_TickWheelSizeRAM     = (CPU_INT32U  )sizeof(OSCfg_TickWheel);
+//__SRP
+OS_PRIO        const  OSCfg_SRPTaskPrio         = (OS_PRIO     )OS_CFG_SRP_TASK_PRIO;
+CPU_STK      * const  OSCfg_SRPTaskStkBasePtr   = (CPU_STK    *)&OSCfg_SRPTaskStk[0];
+CPU_STK_SIZE   const  OSCfg_SRPTaskStkLimit     = (CPU_STK_SIZE)OS_CFG_SRP_TASK_STK_LIMIT;
+CPU_STK_SIZE   const  OSCfg_SRPTaskStkSize      = (CPU_STK_SIZE)OS_CFG_SRP_TASK_STK_SIZE;
+
+OS_PRIO        const  OSCfg_RecTaskPrio         = (OS_PRIO     )OS_CFG_REC_TASK_PRIO;
+CPU_STK      * const  OSCfg_RecTaskStkBasePtr   = (CPU_STK    *)&OSCfg_RecTaskStk[0];
+CPU_STK_SIZE   const  OSCfg_RecTaskStkLimit     = (CPU_STK_SIZE)OS_CFG_REC_TASK_STK_LIMIT;
+CPU_STK_SIZE   const  OSCfg_RecTaskStkSize      = (CPU_STK_SIZE)OS_CFG_REC_TASK_STK_SIZE;
+
+CPU_STK      * const  OSCfg_RecTaskInstanceStkBasePtr   = (CPU_STK    *)OSCfg_RecTaskInstanceStk;
+CPU_STK_SIZE   const  OSCfg_RecTaskInstanceStkLimit     = (CPU_STK_SIZE)OS_CFG_REC_TASK_INSTANCE_STK_LIMIT;
+CPU_STK_SIZE   const  OSCfg_RecTaskInstanceStkSize      = (CPU_STK_SIZE)OS_CFG_REC_TASK_INSTANCE_STK_SIZE;
 
 
 #if (OS_CFG_TMR_EN > 0u)
